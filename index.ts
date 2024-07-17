@@ -67,11 +67,39 @@ function handleTextChange(quill: Quill, delta: Delta, _old: any, source: string)
 
 const formats = [
   {
+    pattern: /^(={1,6} )\w+/,
+    apply(quill: Quill, lineStart: number, _lineText: string, match: RegExpExecArray) {
+      let cursor = quill.getSelection()!
+      quill.deleteText(lineStart, match[1].length)
+      quill.formatLine(lineStart, cursor.index, 'header', match[1].length - 1)
+    },
+  },
+  {
     pattern: /^(\*{1,6} )\w+/,
     apply(quill: Quill, lineStart: number, _lineText: string, match: RegExpExecArray) {
       let cursor = quill.getSelection()!
       quill.deleteText(lineStart, match[1].length)
       quill.formatLine(lineStart, cursor.index, { list: 'bullet', indent: match[1].length - 1 - 1 })
+    },
+  },
+  {
+    pattern: /^(\*{1,6} )(\[([*x ])\] )\w+/,
+    apply(quill: Quill, lineStart: number, _lineText: string, match: RegExpExecArray) {
+      let cursor = quill.getSelection()!
+      quill.deleteText(lineStart, match[1].length + match[2].length)
+      console.log(match)
+      quill.formatLine(lineStart, cursor.index, {
+        list: match[3] === ' ' ? 'unchecked' : 'checked',
+        indent: match[1].length - 1 - 1,
+      })
+    },
+  },
+  {
+    pattern: /^(\.{1,6} )\w+/,
+    apply(quill: Quill, lineStart: number, _lineText: string, match: RegExpExecArray) {
+      let cursor = quill.getSelection()!
+      quill.deleteText(lineStart, match[1].length)
+      quill.formatLine(lineStart, cursor.index, { list: 'ordered', indent: match[1].length - 1 - 1 })
     },
   },
 ]
