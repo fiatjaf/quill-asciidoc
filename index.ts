@@ -44,15 +44,15 @@ function handleTextChange(quill: Quill, delta: Delta, _old: any, source: string)
     let [line, inlineOffset] = quill.getLine(offset) as [Block, number]
     const lineStart = offset - inlineOffset
 
-    let format = quill.getFormat(offset)
-    if (format['code-block'] || format['code']) {
-      return
-    }
-
     let lineText = line.domNode.textContent as string
     for (let f = 0; f < formats.length; f++) {
       let { pattern, apply } = formats[f]
       let lineOffset = 0 // this will be advanced as we find matches so we don't look in the same place twice
+
+      let format = quill.getFormat(lineStart + lineOffset)
+      if (format['code-block'] || format['code']) {
+        return
+      }
 
       // for each format we will go through the entire text (line)
       while (true) {
