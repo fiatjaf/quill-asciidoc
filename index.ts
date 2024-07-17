@@ -67,6 +67,7 @@ function handleTextChange(quill: Quill, delta: Delta, _old: any, source: string)
 
 const formats = [
   {
+    name: 'header',
     pattern: /^(={1,6} )\w+/,
     apply(quill: Quill, lineStart: number, _lineText: string, match: RegExpExecArray) {
       let cursor = quill.getSelection()!
@@ -75,6 +76,7 @@ const formats = [
     },
   },
   {
+    name: 'unordered list',
     pattern: /^(\*{1,6} )\w+/,
     apply(quill: Quill, lineStart: number, _lineText: string, match: RegExpExecArray) {
       let cursor = quill.getSelection()!
@@ -83,11 +85,11 @@ const formats = [
     },
   },
   {
+    name: 'checklist',
     pattern: /^(\*{1,6} )(\[([*x ])\] )\w+/,
     apply(quill: Quill, lineStart: number, _lineText: string, match: RegExpExecArray) {
       let cursor = quill.getSelection()!
       quill.deleteText(lineStart, match[1].length + match[2].length)
-      console.log(match)
       quill.formatLine(lineStart, cursor.index, {
         list: match[3] === ' ' ? 'unchecked' : 'checked',
         indent: match[1].length - 1 - 1,
@@ -95,11 +97,48 @@ const formats = [
     },
   },
   {
+    name: 'ordered list',
     pattern: /^(\.{1,6} )\w+/,
     apply(quill: Quill, lineStart: number, _lineText: string, match: RegExpExecArray) {
       let cursor = quill.getSelection()!
       quill.deleteText(lineStart, match[1].length)
       quill.formatLine(lineStart, cursor.index, { list: 'ordered', indent: match[1].length - 1 - 1 })
+    },
+  },
+  {
+    name: 'constrained bold',
+    pattern: /([^*\w]|^)\*(\w+)\*([^*\w]|$)/,
+    apply(quill: Quill, lineStart: number, _lineText: string, match: RegExpExecArray) {
+      quill.formatText(lineStart + match.index + match[1].length + 1, match[2].length, 'bold', true)
+      quill.deleteText(lineStart + match.index + 2 + match[2].length, 1)
+      quill.deleteText(lineStart + match.index + match[1].length, 1)
+    },
+  },
+  {
+    name: 'unconstrained bold',
+    pattern: /([^*]|^)\*{2}(\w+)\*{2}([^*]|$)/,
+    apply(quill: Quill, lineStart: number, _lineText: string, match: RegExpExecArray) {
+      quill.formatText(lineStart + match.index + match[1].length + 2, match[2].length, 'bold', true)
+      quill.deleteText(lineStart + match.index + 3 + match[2].length, 2)
+      quill.deleteText(lineStart + match.index + match[1].length, 2)
+    },
+  },
+  {
+    name: 'constrained italic',
+    pattern: /([^_\w]|^)_(\w+)_([^_\w]|$)/,
+    apply(quill: Quill, lineStart: number, _lineText: string, match: RegExpExecArray) {
+      quill.formatText(lineStart + match.index + match[1].length + 1, match[2].length, 'italic', true)
+      quill.deleteText(lineStart + match.index + 2 + match[2].length, 1)
+      quill.deleteText(lineStart + match.index + match[1].length, 1)
+    },
+  },
+  {
+    name: 'unconstrained italic',
+    pattern: /([^_]|^)\_{2}(\w+)\_{2}([^_]|$)/,
+    apply(quill: Quill, lineStart: number, _lineText: string, match: RegExpExecArray) {
+      quill.formatText(lineStart + match.index + match[1].length + 2, match[2].length, 'italic', true)
+      quill.deleteText(lineStart + match.index + 3 + match[2].length, 2)
+      quill.deleteText(lineStart + match.index + match[1].length, 2)
     },
   },
 ]
