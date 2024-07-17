@@ -125,6 +125,38 @@ const formats = [
     },
   },
   {
+    name: 'code block',
+    pattern: /^----$/,
+    apply(quill: Quill, _match: RegExpExecArray, lineStart: number, lineText: string): number {
+      let cursor = quill.getSelection()!
+      let isAtLineEnd = lineText.length === cursor.index - lineStart
+      if (isAtLineEnd) {
+        let [prev, inlineOffset] = quill.getLine(lineStart - 1)
+        if (prev) {
+          let match = /^\[(source|quote)?(,([^\]]+))?\]$/.exec(prev.domNode.textContent!)
+          if (match) {
+            switch (match[1]) {
+              case 'quote':
+                // not supported
+                return 0
+              case 'source':
+              case undefined:
+              case '':
+                // assume it's source code
+                quill.deleteText(lineStart - 1 - inlineOffset, lineStart - 1)
+            }
+          }
+        }
+
+        quill.deleteText(lineStart, 4)
+
+        cursor = quill.getSelection()!
+        quill.formatLine(cursor.index, cursor.index, 'code-block', true)
+      }
+      return 0
+    },
+  },
+  {
     name: 'inline code',
     pattern: /([^`\p{L}]|^)`([^`]+)`([^`\p{L}]|$)/u,
     apply(quill: Quill, match: RegExpExecArray, lineStart: number, lineText: string): number {
