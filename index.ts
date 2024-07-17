@@ -77,7 +77,7 @@ function handleTextChange(quill: Quill, delta: Delta, _old: any, source: string)
 const formats = [
   {
     name: 'header',
-    pattern: /^(={1,6} )\p{L}+/u,
+    pattern: /^(={1,6} )\S+/u,
     apply(quill: Quill, match: RegExpExecArray, lineStart: number, _lineText: string): number {
       quill.deleteText(lineStart, match[1].length)
       quill.formatLine(lineStart, lineStart + 1, 'header', match[1].length - 1)
@@ -86,7 +86,7 @@ const formats = [
   },
   {
     name: 'unordered list',
-    pattern: /^(\*{1,6} )\p{L}+/u,
+    pattern: /^(\*{1,6} )\S+/u,
     apply(quill: Quill, match: RegExpExecArray, lineStart: number, _lineText: string): number {
       quill.deleteText(lineStart, match[1].length)
       quill.formatLine(lineStart, lineStart + 1, { list: 'bullet', indent: match[1].length - 1 - 1 })
@@ -95,7 +95,7 @@ const formats = [
   },
   {
     name: 'checklist',
-    pattern: /^(\*{1,6} )(\[([*x ])\] )\p{L}+/u,
+    pattern: /^(\*{1,6} )(\[([*x ])\] )\S+/u,
     apply(quill: Quill, match: RegExpExecArray, lineStart: number, _lineText: string): number {
       let charsToDelete = match[1].length + match[2].length
       quill.deleteText(lineStart, charsToDelete)
