@@ -108,11 +108,20 @@ const formats = [
   },
   {
     name: 'ordered list',
-    pattern: /^(\.{1,6} )\p{L}+/u,
+    pattern: /^(\.{1,6} )\S+/u,
     apply(quill: Quill, match: RegExpExecArray, lineStart: number, _lineText: string): number {
       quill.deleteText(lineStart, match[1].length)
       quill.formatLine(lineStart, lineStart + 1, { list: 'ordered', indent: match[1].length - 1 - 1 })
       return match[1].length
+    },
+  },
+  {
+    name: 'line quote',
+    pattern: /^> \S+/u,
+    apply(quill: Quill, _match: RegExpExecArray, lineStart: number, _lineText: string): number {
+      quill.deleteText(lineStart, 2)
+      quill.formatLine(lineStart, lineStart + 1, 'blockquote', true)
+      return 2
     },
   },
   {
