@@ -42,6 +42,8 @@ function handleTextChange(quill: Quill, delta: Delta, _old: any, source: string)
 
     // split all the lines of the input
     const multilines = ins.split('\n')
+    let inCodeBlock = false
+
     for (let m = 0; m < multilines.length; m++) {
       // go one by one
       let lineLength = multilines[m].length
@@ -52,7 +54,14 @@ function handleTextChange(quill: Quill, delta: Delta, _old: any, source: string)
         const lineStart = offset - inlineOffset
         let lineText = line.domNode.textContent as string
         for (let f = 0; f < formats.length; f++) {
-          let { pattern, apply } = formats[f]
+          let { name, pattern, apply } = formats[f]
+
+          if (inCodeBlock && name !== 'exit-codeblock') {
+            // when in a codeblock we only support exiting the block, so we skip all other directives
+            quill.formatLine(lineStart, lineStart, 'code-block', true)
+            continue
+          }
+
           let lineOffset = 0 // this will be advanced as we find matches so we don't look in the same place twice
 
           // for each format we will go through the entire text (line)
@@ -62,9 +71,16 @@ function handleTextChange(quill: Quill, delta: Delta, _old: any, source: string)
               // nothing found, we can move on to the next format
               break
             }
-            let format = quill.getFormat(lineStart + lineOffset + match.index)
-            if (format['code-block'] || format['code']) {
-              break
+
+            if (name === 'codeblock') {
+              inCodeBlock = true
+            } else if (name === 'exit-codeblock') {
+              inCodeBlock = false
+            } else {
+              let format = quill.getFormat(lineStart + lineOffset + match.index)
+              if (format['code-block'] || format['code']) {
+                break
+              }
             }
 
             let [charsDeleted, charsToSkip] = apply(quill, match, lineStart + lineOffset, lineText)
@@ -73,8 +89,13 @@ function handleTextChange(quill: Quill, delta: Delta, _old: any, source: string)
             offset -= charsDeleted
 
             // update lineText since apply() has modified it
-            lineText = quill.getLine(offset + lineLength)[0]!.domNode!.textContent as string // must getLine() again because some reason
-            lineOffset += match.index + charsToSkip - charsDeleted // also adjust the offset from where we'll continue to scan
+            const newLine = quill.getLine(offset + lineLength)[0]
+            if (newLine) {
+              lineText = newLine!.domNode!.textContent as string // must getLine() again because some reason
+              lineOffset += match.index + charsToSkip - charsDeleted // also adjust the offset from where we'll continue to scan
+            } else {
+              break
+            }
           }
         }
 
@@ -146,35 +167,50 @@ const formats = [
     },
   },
   {
-    name: 'code block',
+    name: 'codeblock',
     pattern: /^----$/,
     apply(quill: Quill, _match: RegExpExecArray, matchStart: number, lineText: string): [number, number] {
-      let cursor = quill.getSelection()!
-      let isAtLineEnd = lineText.length === cursor.index - matchStart
-      if (isAtLineEnd) {
-        let [prev, inlineOffset] = quill.getLine(matchStart - 1)
-        if (prev) {
-          let match = /^\[(source|quote)?(,([^\]]+))?\]$/.exec(prev.domNode.textContent!)
-          if (match) {
-            switch (match[1]) {
-              case 'quote':
-                // not supported
-                return [0, 4]
-              case 'source':
-              case undefined:
-              case '':
-                // assume it's source code
-                quill.deleteText(matchStart - 1 - inlineOffset, matchStart - 1)
-            }
+      let [prev, inlineOffset] = quill.getLine(matchStart - 1)
+      if (prev) {
+        let match = /^\[(source|quote)?(,([^\]]+))?\]$/.exec(prev.domNode.textContent!)
+        if (match) {
+          switch (match[1]) {
+            case 'quote':
+              // not supported
+              return [4, 4]
+            case 'source':
+            case undefined:
+            case '':
+              // assume it's source code
+              quill.deleteText(matchStart - 1 - inlineOffset, matchStart - 1)
           }
         }
-
-        quill.deleteText(matchStart, 4)
-
-        cursor = quill.getSelection()!
-        quill.formatLine(cursor.index, cursor.index, 'code-block', true)
       }
-      return [0, 4]
+
+      let cursor = quill.getSelection()!
+      let isAtLineEnd = lineText.length === cursor.index - matchStart
+      let deleted: number
+      if (isAtLineEnd) {
+        // if we're typing this live
+        quill.deleteText(matchStart, 4) // delete only 4, leave a line for the user to type
+        deleted = 4
+      } else {
+        // otherwise, if we're pasting
+        quill.deleteText(matchStart, 5) // delete the newline, i.e. everything
+        deleted = 5
+      }
+
+      quill.formatLine(matchStart, matchStart, 'code-block', true)
+      return [deleted, 4]
+    },
+  },
+  {
+    name: 'exit-codeblock',
+    pattern: /^----$/,
+    apply(quill: Quill, _match: RegExpExecArray, matchStart: number, _lineText: string): [number, number] {
+      quill.deleteText(matchStart, 5)
+      quill.removeFormat(matchStart, matchStart)
+      return [5, 4]
     },
   },
   {
