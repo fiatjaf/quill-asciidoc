@@ -28,7 +28,6 @@ export default class {
 
 function handleTextChange(quill: Quill, delta: Delta, _old: any, source: string) {
   if (source !== 'user') return
-  console.log('DELTA', ...delta.ops)
 
   let ops = delta.ops
   let offset = 0
@@ -56,16 +55,15 @@ function handleTextChange(quill: Quill, delta: Delta, _old: any, source: string)
           let { pattern, apply } = formats[f]
           let lineOffset = 0 // this will be advanced as we find matches so we don't look in the same place twice
 
-          let format = quill.getFormat(lineStart + lineOffset)
-          if (format['code-block'] || format['code']) {
-            continue
-          }
-
           // for each format we will go through the entire text (line)
           while (true) {
             let match = pattern.exec(lineText.substring(lineOffset))
             if (!match) {
               // nothing found, we can move on to the next format
+              break
+            }
+            let format = quill.getFormat(lineStart + lineOffset + match.index)
+            if (format['code-block'] || format['code']) {
               break
             }
 
