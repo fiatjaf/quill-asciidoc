@@ -47,7 +47,7 @@ function handleTextChange(quill: Quill, delta: Delta, _old: any, source: string)
       let lineLength = multilines[m].length
       if (lineLength > 0) {
         // skipping empty lines
-        let [line, inlineOffset] = quill.getLine(offset) as [Block, number]
+        const [line, inlineOffset] = quill.getLine(offset) as [Block, number]
 
         const lineStart = offset - inlineOffset
         let lineText = line.domNode.textContent as string
@@ -67,14 +67,14 @@ function handleTextChange(quill: Quill, delta: Delta, _old: any, source: string)
               break
             }
 
+            let [charsDeleted, charsToSkip] = apply(quill, match, lineStart + lineOffset, lineText)
 
-            let [charsDeleted, charsToSkip] = apply(quill, match, lineStart, lineText)
+            // we must keep track this to adjust the offsets as we modify the text
+            offset -= charsDeleted
 
             // update lineText since apply() has modified it
-            lineText = quill.getLine(offset)[0]!.domNode!.textContent as string // must getLine() again because some reason
-            lineOffset += charsToSkip - charsDeleted // also adjust the offset from where we'll continue to scan
-
-            offset -= charsDeleted // we must keep track this to adjust the offsets as we modify the text
+            lineText = quill.getLine(offset + lineLength)[0]!.domNode!.textContent as string // must getLine() again because some reason
+            lineOffset += match.index + charsToSkip - charsDeleted // also adjust the offset from where we'll continue to scan
           }
         }
 
@@ -91,7 +91,7 @@ function handleTextChange(quill: Quill, delta: Delta, _old: any, source: string)
   }
 }
 
-// the apply() function return:
+// the apply() function returns:
 // * the number of characters that were deleted from the line
 // * the number of characters that should be skipped by the parser
 
@@ -108,19 +108,19 @@ const formats = [
   {
     name: 'unordered list',
     pattern: /^(\*{1,6} )\S+/u,
-    apply(quill: Quill, match: RegExpExecArray, lineStart: number, _lineText: string): [number, number] {
-      quill.deleteText(lineStart, match[1].length)
-      quill.formatLine(lineStart, lineStart + 1, { list: 'bullet', indent: match[1].length - 1 - 1 })
+    apply(quill: Quill, match: RegExpExecArray, matchStart: number, _lineText: string): [number, number] {
+      quill.deleteText(matchStart, match[1].length)
+      quill.formatLine(matchStart, matchStart + 1, { list: 'bullet', indent: match[1].length - 1 - 1 })
       return [match[1].length, match[1].length]
     },
   },
   {
     name: 'checklist',
     pattern: /^(\*{1,6} )(\[([*x ])\] )\S+/u,
-    apply(quill: Quill, match: RegExpExecArray, lineStart: number, _lineText: string): [number, number] {
+    apply(quill: Quill, match: RegExpExecArray, matchStart: number, _lineText: string): [number, number] {
       let charsToDelete = match[1].length + match[2].length
-      quill.deleteText(lineStart, charsToDelete)
-      quill.formatLine(lineStart, lineStart + 1, {
+      quill.deleteText(matchStart, charsToDelete)
+      quill.formatLine(matchStart, matchStart + 1, {
         list: match[3] === ' ' ? 'unchecked' : 'checked',
         indent: match[1].length - 1 - 1,
       })
@@ -130,29 +130,29 @@ const formats = [
   {
     name: 'ordered list',
     pattern: /^(\.{1,6} )\S+/u,
-    apply(quill: Quill, match: RegExpExecArray, lineStart: number, _lineText: string): [number, number] {
-      quill.deleteText(lineStart, match[1].length)
-      quill.formatLine(lineStart, lineStart + 1, { list: 'ordered', indent: match[1].length - 1 - 1 })
+    apply(quill: Quill, match: RegExpExecArray, matchStart: number, _lineText: string): [number, number] {
+      quill.deleteText(matchStart, match[1].length)
+      quill.formatLine(matchStart, matchStart + 1, { list: 'ordered', indent: match[1].length - 1 - 1 })
       return [match[1].length, match[1].length]
     },
   },
   {
     name: 'line quote',
     pattern: /^> \S+/u,
-    apply(quill: Quill, _match: RegExpExecArray, lineStart: number, _lineText: string): [number, number] {
-      quill.deleteText(lineStart, 2)
-      quill.formatLine(lineStart, lineStart + 1, 'blockquote', true)
+    apply(quill: Quill, _match: RegExpExecArray, matchStart: number, _lineText: string): [number, number] {
+      quill.deleteText(matchStart, 2)
+      quill.formatLine(matchStart, matchStart + 1, 'blockquote', true)
       return [2, 2]
     },
   },
   {
     name: 'code block',
     pattern: /^----$/,
-    apply(quill: Quill, _match: RegExpExecArray, lineStart: number, lineText: string): [number, number] {
+    apply(quill: Quill, _match: RegExpExecArray, matchStart: number, lineText: string): [number, number] {
       let cursor = quill.getSelection()!
-      let isAtLineEnd = lineText.length === cursor.index - lineStart
+      let isAtLineEnd = lineText.length === cursor.index - matchStart
       if (isAtLineEnd) {
-        let [prev, inlineOffset] = quill.getLine(lineStart - 1)
+        let [prev, inlineOffset] = quill.getLine(matchStart - 1)
         if (prev) {
           let match = /^\[(source|quote)?(,([^\]]+))?\]$/.exec(prev.domNode.textContent!)
           if (match) {
@@ -164,12 +164,12 @@ const formats = [
               case undefined:
               case '':
                 // assume it's source code
-                quill.deleteText(lineStart - 1 - inlineOffset, lineStart - 1)
+                quill.deleteText(matchStart - 1 - inlineOffset, matchStart - 1)
             }
           }
         }
 
-        quill.deleteText(lineStart, 4)
+        quill.deleteText(matchStart, 4)
 
         cursor = quill.getSelection()!
         quill.formatLine(cursor.index, cursor.index, 'code-block', true)
@@ -180,63 +180,64 @@ const formats = [
   {
     name: 'inline code',
     pattern: /([^`\p{L}]|^)`([^`]+)`([^`\p{L}]|$)/u,
-    apply(quill: Quill, match: RegExpExecArray, lineStart: number, lineText: string): [number, number] {
-      advanceCursor(quill, lineStart, lineText)
-      quill.formatText(lineStart + match.index + match[1].length + 1, match[2].length, 'code', true)
-      quill.deleteText(lineStart + match.index + match[1].length + 1 + match[2].length, 1)
-      quill.deleteText(lineStart + match.index + match[1].length, 1)
+    apply(quill: Quill, match: RegExpExecArray, matchStart: number, lineText: string): [number, number] {
+      advanceCursor(quill, matchStart, lineText)
+      quill.formatText(matchStart + match.index + match[1].length + 1, match[2].length, 'code', true)
+      quill.deleteText(matchStart + match.index + match[1].length + 1 + match[2].length, 1)
+      quill.deleteText(matchStart + match.index + match[1].length, 1)
       return [2, match[0].length]
     },
   },
   {
     name: 'unconstrained bold',
     pattern: /([^*]|^)\*{2}([^*]+)\*{2}([^*]|$)/u,
-    apply(quill: Quill, match: RegExpExecArray, lineStart: number, lineText: string): [number, number] {
-      advanceCursor(quill, lineStart, lineText)
-      quill.formatText(lineStart + match.index + match[1].length + 2, match[2].length, 'bold', true)
-      quill.deleteText(lineStart + match.index + match[1].length + 2 + match[2].length, 2)
-      quill.deleteText(lineStart + match.index + match[1].length, 2)
+    apply(quill: Quill, match: RegExpExecArray, matchStart: number, lineText: string): [number, number] {
+      advanceCursor(quill, matchStart, lineText)
+      quill.formatText(matchStart + match.index + match[1].length + 2, match[2].length, 'bold', true)
+      quill.deleteText(matchStart + match.index + match[1].length + 2 + match[2].length, 2)
+      quill.deleteText(matchStart + match.index + match[1].length, 2)
       return [4, match[0].length]
     },
   },
   {
     name: 'constrained bold',
     pattern: /([^*\p{L}]|^)\*([^*]+)\*([^*\p{L}]|$)/u,
-    apply(quill: Quill, match: RegExpExecArray, lineStart: number, lineText: string): [number, number] {
-      advanceCursor(quill, lineStart, lineText)
-      quill.formatText(lineStart + match.index + match[1].length + 1, match[2].length, 'bold', true)
-      quill.deleteText(lineStart + match.index + match[1].length + 1 + match[2].length, 1)
-      quill.deleteText(lineStart + match.index + match[1].length, 1)
+    apply(quill: Quill, match: RegExpExecArray, matchStart: number, lineText: string): [number, number] {
+      advanceCursor(quill, matchStart, lineText)
+      quill.formatText(matchStart + match.index + match[1].length + 1, match[2].length, 'bold', true)
+      quill.deleteText(matchStart + match.index + match[1].length + 1 + match[2].length, 1)
+      quill.deleteText(matchStart + match.index + match[1].length, 1)
       return [2, match[0].length]
     },
   },
   {
     name: 'unconstrained italic',
     pattern: /([^_]|^)_{2}([^_]+)_{2}([^_]|$)/u,
-    apply(quill: Quill, match: RegExpExecArray, lineStart: number, lineText: string): [number, number] {
-      advanceCursor(quill, lineStart, lineText)
-      quill.formatText(lineStart + match.index + match[1].length + 2, match[2].length, 'italic', true)
-      quill.deleteText(lineStart + match.index + match[1].length + 2 + match[2].length, 2)
-      quill.deleteText(lineStart + match.index + match[1].length, 2)
+    apply(quill: Quill, match: RegExpExecArray, matchStart: number, lineText: string): [number, number] {
+      advanceCursor(quill, matchStart, lineText)
+      quill.formatText(matchStart + match.index + match[1].length + 2, match[2].length, 'italic', true)
+      quill.deleteText(matchStart + match.index + match[1].length + 2 + match[2].length, 2)
+      quill.deleteText(matchStart + match.index + match[1].length, 2)
       return [4, match[0].length]
     },
   },
   {
     name: 'constrained italic',
     pattern: /([^_\p{L}]|^)_([^_]+)_([^_\p{L}]|$)/u,
-    apply(quill: Quill, match: RegExpExecArray, lineStart: number, lineText: string): [number, number] {
-      advanceCursor(quill, lineStart, lineText)
-      quill.formatText(lineStart + match.index + match[1].length + 1, match[2].length, 'italic', true)
-      quill.deleteText(lineStart + match.index + match[1].length + 1 + match[2].length, 1)
-      quill.deleteText(lineStart + match.index + match[1].length, 1)
+    apply(quill: Quill, match: RegExpExecArray, matchStart: number, lineText: string): [number, number] {
+      advanceCursor(quill, matchStart, lineText)
+      quill.formatText(matchStart + match.index + match[1].length + 1, match[2].length, 'italic', true)
+      quill.deleteText(matchStart + match.index + match[1].length + 1 + match[2].length, 1)
+      quill.deleteText(matchStart + match.index + match[1].length, 1)
       return [2, match[0].length]
     },
   },
 ]
 
-function advanceCursor(quill: Quill, lineStart: number, lineText: string) {
+// ~ utils
+function advanceCursor(quill: Quill, matchStart: number, lineText: string) {
   let cursor = quill.getSelection()!
-  let isAtLineEnd = lineText.length === cursor.index - lineStart
+  let isAtLineEnd = lineText.length === cursor.index - matchStart
   if (isAtLineEnd) {
     // we're at the end of the line, so add a space so we don't keep inside the formatting block
     quill.insertText(cursor.index, ' ')
