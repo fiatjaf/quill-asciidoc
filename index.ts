@@ -227,7 +227,24 @@ export const formats = [
     },
   },
   {
-    name: 'url macro',
+    name: 'image macro',
+    pattern: /\bimage::([^[]+)\[([^\]]*)\]/,
+    apply(quill: Quill, match: RegExpExecArray, matchStart: number, _lineText: string): [number, number] {
+      let url = match[1]
+      let attrs = match[2].split(',').map(attr => attr.split('=').map(s => s.trim()))
+      quill.deleteText(matchStart + match.index, match[0].length)
+      quill.insertEmbed(matchStart + match.index, 'image', url)
+
+      let link = attrs.find(([k]) => k === 'link')
+      if (link) {
+        quill.formatText(matchStart + match.index, 1, 'link', link[1])
+      }
+
+      return [match[0].length - 1, 1 /* the embed is represented by one character */]
+    },
+  },
+  {
+    name: 'link macro',
     pattern: /(\b(https?|link):[^[]+)\[([^\]]*)\]/,
     apply(quill: Quill, match: RegExpExecArray, matchStart: number, lineText: string): [number, number] {
       let charsAdvanced = 0
@@ -264,7 +281,7 @@ export const formats = [
     },
   },
   {
-    name: 'direct url',
+    name: 'raw link',
     pattern: /([^\\"]|^)(<?)\b(https?:(\/\/)?([\w-]+\.)+\w+(:\d{0,5})?(\/([^\/>,\s]?\/?)+)?)\b(>?)([^"]|$)/,
     apply(quill: Quill, match: RegExpExecArray, matchStart: number, _lineText: string): [number, number] {
       let deletedChars = 0
