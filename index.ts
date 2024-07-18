@@ -228,7 +228,7 @@ export const formats = [
   },
   {
     name: 'image macro',
-    pattern: /\bimage::([^[]+)\[([^\]]*)\]/,
+    pattern: /\bimage::?([^[]+)\[([^\]]*)\]/,
     apply(quill: Quill, match: RegExpExecArray, matchStart: number, _lineText: string): [number, number] {
       let url = match[1]
       let attrs = match[2].split(',').map(attr => attr.split('=').map(s => s.trim()))
