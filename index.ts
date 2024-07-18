@@ -189,17 +189,6 @@ const formats = [
     },
   },
   {
-    name: 'constrained bold',
-    pattern: /([^*\p{L}]|^)\*([^*]+)\*([^*\p{L}]|$)/u,
-    apply(quill: Quill, match: RegExpExecArray, lineStart: number, lineText: string): [number, number] {
-      advanceCursor(quill, lineStart, lineText)
-      quill.formatText(lineStart + match.index + match[1].length + 1, match[2].length, 'bold', true)
-      quill.deleteText(lineStart + match.index + match[1].length + 1 + match[2].length, 1)
-      quill.deleteText(lineStart + match.index + match[1].length, 1)
-      return [2, match[0].length]
-    },
-  },
-  {
     name: 'unconstrained bold',
     pattern: /([^*]|^)\*{2}([^*]+)\*{2}([^*]|$)/u,
     apply(quill: Quill, match: RegExpExecArray, lineStart: number, lineText: string): [number, number] {
@@ -211,11 +200,11 @@ const formats = [
     },
   },
   {
-    name: 'constrained italic',
-    pattern: /([^_\p{L}]|^)_([^_]+)_([^_\p{L}]|$)/u,
+    name: 'constrained bold',
+    pattern: /([^*\p{L}]|^)\*([^*]+)\*([^*\p{L}]|$)/u,
     apply(quill: Quill, match: RegExpExecArray, lineStart: number, lineText: string): [number, number] {
       advanceCursor(quill, lineStart, lineText)
-      quill.formatText(lineStart + match.index + match[1].length + 1, match[2].length, 'italic', true)
+      quill.formatText(lineStart + match.index + match[1].length + 1, match[2].length, 'bold', true)
       quill.deleteText(lineStart + match.index + match[1].length + 1 + match[2].length, 1)
       quill.deleteText(lineStart + match.index + match[1].length, 1)
       return [2, match[0].length]
@@ -230,6 +219,17 @@ const formats = [
       quill.deleteText(lineStart + match.index + match[1].length + 2 + match[2].length, 2)
       quill.deleteText(lineStart + match.index + match[1].length, 2)
       return [4, match[0].length]
+    },
+  },
+  {
+    name: 'constrained italic',
+    pattern: /([^_\p{L}]|^)_([^_]+)_([^_\p{L}]|$)/u,
+    apply(quill: Quill, match: RegExpExecArray, lineStart: number, lineText: string): [number, number] {
+      advanceCursor(quill, lineStart, lineText)
+      quill.formatText(lineStart + match.index + match[1].length + 1, match[2].length, 'italic', true)
+      quill.deleteText(lineStart + match.index + match[1].length + 1 + match[2].length, 1)
+      quill.deleteText(lineStart + match.index + match[1].length, 1)
+      return [2, match[0].length]
     },
   },
 ]
