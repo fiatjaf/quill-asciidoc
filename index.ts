@@ -37,6 +37,8 @@ function handleTextChange(quill: Quill, delta: Delta, _old: any, source: string)
     ops = ops.slice(1)
   }
 
+  if (ops.length === 0) return
+
   if (ops[0].insert) {
     const ins = ops[0].insert as string
 
@@ -116,7 +118,7 @@ function handleTextChange(quill: Quill, delta: Delta, _old: any, source: string)
 // * the number of characters that were deleted from the line
 // * the number of characters that should be skipped by the parser
 
-const formats = [
+export const formats = [
   {
     name: 'header',
     pattern: /^(={1,6} )\S+/u,
@@ -222,6 +224,64 @@ const formats = [
       quill.deleteText(matchStart + match.index + match[1].length + 1 + match[2].length, 1)
       quill.deleteText(matchStart + match.index + match[1].length, 1)
       return [2, match[0].length]
+    },
+  },
+  {
+    name: 'url macro',
+    pattern: /(\b(https?|link):[^[]+)\[([^\]]*)\]/,
+    apply(quill: Quill, match: RegExpExecArray, matchStart: number, lineText: string): [number, number] {
+      let charsAdvanced = 0
+      let charsDeleted = 0
+
+      let cursor = quill.getSelection()!
+      let isAtLineEnd = lineText.length === cursor.index - matchStart
+
+      let url = match[1]
+      if (url.startsWith('link:')) url = url.substring(5)
+
+      let text = match[3]?.split(',')?.[0]?.trim?.()
+      if (text && text.length > 0) {
+        // we have text for the anchor, so we must inspect it for formatting syntax
+        charsDeleted = match[0].length - text.length
+        charsAdvanced = -charsDeleted
+      } else {
+        // otherwise we just use the url as the text
+        charsDeleted = match[0].length - url.length
+        charsAdvanced = url.length // and then we don't have to inspect it
+        text = url
+      }
+
+      quill.deleteText(matchStart + match.index, match[0].length)
+      quill.insertText(matchStart + match.index, text, 'link', url)
+
+      setTimeout(() => {
+        if (isAtLineEnd) {
+          quill.setSelection(matchStart + match.index + text.length)
+        }
+      }, 230)
+
+      return [charsDeleted, charsAdvanced]
+    },
+  },
+  {
+    name: 'direct url',
+    pattern: /([^\\"]|^)(<?)\b(https?:(\/\/)?([\w-]+\.)+\w+(:\d{0,5})?(\/([^\/>,\s]?\/?)+)?)\b(>?)([^"]|$)/,
+    apply(quill: Quill, match: RegExpExecArray, matchStart: number, _lineText: string): [number, number] {
+      let deletedChars = 0
+      // deleted ending >
+      quill.deleteText(matchStart + match.index + match[1].length + match[2].length + match[3].length, match[10].length)
+      deletedChars += match[10].length
+      // delete initial <
+      quill.deleteText(matchStart + match.index + match[1].length, match[2].length)
+      deletedChars += match[2].length
+
+      // format link
+      setTimeout(() => {
+        quill.formatText(matchStart + match.index + match[1].length, match[3].length, 'link', match[3])
+      }, 230)
+
+      let charsAdvanced = match[1].length + match[3].length
+      return [deletedChars, charsAdvanced]
     },
   },
   {
