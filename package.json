@@ -2,7 +2,7 @@
   "type": "module",
   "name": "quill-asciidoc",
   "version": "0.0.1",
-  "description": "tools for making Quill an Asciidoc editor",
+  "description": "turn Quill into an Asciidoc editor",
   "repository": {
     "type": "git",
     "url": "https://github.com/fiatjaf/quill-asciidoc.git"
