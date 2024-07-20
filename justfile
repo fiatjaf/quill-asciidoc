@@ -12,6 +12,7 @@ test-only file:
   bun test {{file}}
 
 publish: build
+  npx downdoc README.adoc
   npm publish
 
 format:
