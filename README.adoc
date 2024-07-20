@@ -1,0 +1,24 @@
+= quill-asciidoc
+
+A wrapper around https://quilljs.com/[Quill] that gives you Asciidoc powers:
+
+* allows pasting raw Asciidoc -- it gets translated into Quill formats
+* allows exporting contents as Asciidoc with `quill.getAsciidoc()`
+
+== Installation
+
+---
+npm i quill-asciidoc
+---
+
+== Usage
+
+[source,typescript]
+----
+const quill = new QuillAsciidoc('#editor', {
+  theme: 'snow',
+})
+
+let adoc: string = quill.getAsciidoc()
+console.log(adoc)
+----
