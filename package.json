@@ -26,6 +26,7 @@
     "typescript": ">=5.0.0"
   },
   "peerDependenciesMeta": {
+    "quill": "^2.0.2",
     "typescript": {
       "optional": true
     }
@@ -38,7 +39,6 @@
   "devDependencies": {
     "@types/node": "^18.13.0",
     "@types/node-fetch": "^2.6.3",
-    "@types/quill": "^2.0.14",
     "@typescript-eslint/eslint-plugin": "^6.5.0",
     "@typescript-eslint/parser": "^6.5.0",
     "bun-types": "^1.0.18",
@@ -49,7 +49,6 @@
     "eslint-plugin-babel": "^5.3.1",
     "esm-loader-typescript": "^1.0.3",
     "prettier": "^3.0.3",
-    "quill": "^2.0.2",
     "typescript": "^5.0.4"
   },
   "scripts": {
