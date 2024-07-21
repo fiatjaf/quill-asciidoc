@@ -3,6 +3,7 @@
 A wrapper around https://quilljs.com/[Quill] that gives you WYSIWYG Asciidoc powers:
 
 * allows pasting raw Asciidoc -- it gets translated into Quill formats
+* allows calling `quill.setText()` with raw Asciidoc -- it gets translated into Quill formats
 * allows exporting contents as Asciidoc with `quill.getAsciidoc()`
 
 == Installation
@@ -18,6 +19,45 @@ npm i quill-asciidoc
 const quill = new QuillAsciidoc('#editor', {
   theme: 'snow',
 })
+
+quill.setText(`
+= hello _world_
+
+this is https://asciidoc.org/[*Asciidoc*], a reasonably good markup language^unlike markdown^
+
+it has
+
+* document metadata
+* lists
+** ordered
+** unordered
+*** with checklists
+* superscript
+* subscript
+* nicer links syntax
+* nicer image syntax
+** much nicer image-with-link syntax
+* tables
+* blocks with metadata
+* sidebars
+* footnotes
+
+> quotes are the same
+> somewhat lame
+
+CAUTION: Asciidoc has too many features, but only the most basic are supported by native Quill types and this library (definitely not all listed above).
+
+----
+code blocks are supported
+(you can write them without the leading "[source]" thing if you prefer)
+----
+
+turns out Quill isn't a bad editor, but it _doesn't_ support https://stackoverflow.com/questions/59602182/quill-add-image-url-instead-of-uploading-it[adding images by URL easily].
+
+this is fine as we can do it with `image::url[link=target]` in Asciidoc:
+
+image::https://1.bp.blogspot.com/_W90V87w3sr8/TOyjlr_FYsI/AAAAAAAAAQs/eDR5AFJoY7s/s1600/llama-1-large.jpg[link=https://1.bp.blogspot.com/_W90V87w3sr8/TOyjlr_FYsI/AAAAAAAAAQs/eDR5AFJoY7s/s1600/llama-1-large.jpg]
+`)
 
 let adoc: string = quill.getAsciidoc()
 console.log(adoc)
