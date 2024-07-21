@@ -107,15 +107,6 @@ export const formats = [
     },
   },
   {
-    name: 'unordered list',
-    pattern: /^(\*{1,6} )\S+/u,
-    apply(quill: Quill, match: RegExpExecArray, matchStart: number, _lineText: string): [number, number] {
-      quill.deleteText(matchStart, match[1].length)
-      quill.formatLine(matchStart, matchStart + 1, { list: 'bullet', indent: match[1].length - 1 - 1 })
-      return [match[1].length, match[1].length]
-    },
-  },
-  {
     name: 'checklist',
     pattern: /^(\*{1,6} )(\[([*x ])\] )\S+/u,
     apply(quill: Quill, match: RegExpExecArray, matchStart: number, _lineText: string): [number, number] {
@@ -126,6 +117,15 @@ export const formats = [
         indent: match[1].length - 1 - 1,
       })
       return [charsToDelete, charsToDelete]
+    },
+  },
+  {
+    name: 'unordered list',
+    pattern: /^(\*{1,6} )\S+/u,
+    apply(quill: Quill, match: RegExpExecArray, matchStart: number, _lineText: string): [number, number] {
+      quill.deleteText(matchStart, match[1].length)
+      quill.formatLine(matchStart, matchStart + 1, { list: 'bullet', indent: match[1].length - 1 - 1 })
+      return [match[1].length, match[1].length]
     },
   },
   {
