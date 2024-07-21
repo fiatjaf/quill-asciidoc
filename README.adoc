@@ -47,10 +47,11 @@ it has
 
 CAUTION: Asciidoc has too many features, but only the most basic are supported by native Quill types and this library (definitely not all listed above).
 
-----
+[source]
+\----
 code blocks are supported
 (you can write them without the leading "[source]" thing if you prefer)
-----
+\----
 
 turns out Quill isn't a bad editor, but it _doesn't_ support https://stackoverflow.com/questions/59602182/quill-add-image-url-instead-of-uploading-it[adding images by URL easily].
 

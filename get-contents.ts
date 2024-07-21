@@ -19,6 +19,7 @@ type OutputLine = {
 export function convert(delta: Delta): string {
   let output: OutputLine[] = []
   let current: OutputLine = { text: '' }
+  let codeBlockOpen = false
 
   for (let o = 0; o < delta.ops.length; o++) {
     let op = delta.ops[o]
@@ -31,7 +32,7 @@ export function convert(delta: Delta): string {
     let isSubscript = false
     let isSuperscript = false
 
-    // first close any open formatting section that doesn't continue the current line (read it backwards)
+    // first close any open formatting section that doesn't continue in the current section (read it backwards)
     if (current.openFormats?.length) {
       for (let f = current.openFormats.length - 1; f >= 0; f--) {
         let format = current.openFormats[f]
@@ -104,6 +105,13 @@ export function convert(delta: Delta): string {
       }
     }
 
+    // close code block, if one is open
+    if (codeBlockOpen && !(op.attributes?.['code-block'] || delta.ops[o + 1]?.attributes?.['code-block'])) {
+      codeBlockOpen = false
+      output.push({ text: '----' })
+    }
+
+    // inspect operation/section
     if ((insert === '\n' || insert === '\n\n') && attributes) {
       // block
       if (attributes.header) {
@@ -111,7 +119,10 @@ export function convert(delta: Delta): string {
       } else if (attributes.blockquote) {
         current.text = '> ' + current.text
       } else if (attributes['code-block']) {
-        current.text = '[source]\n----\n' + current.text + '\n----'
+        if (!codeBlockOpen) {
+          codeBlockOpen = true
+          output.push({ text: '[source]\n----' })
+        }
       } else if (attributes.list) {
         let r = ((attributes?.indent as number) ?? 0) + 1
         switch (attributes.list) {

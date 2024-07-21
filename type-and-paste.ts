@@ -33,7 +33,12 @@ export function handleTextChange(quill: Quill, delta: Delta, _old: any, source: 
 
         const lineStart = offset - inlineOffset
         let lineText = line.domNode.textContent as string
+
+        let justEnteredCodeBlock = false
+
         for (let f = 0; f < formats.length; f++) {
+          if (justEnteredCodeBlock) break // when we enter a codeblock there is nothing else on the line that may interest us
+
           let { name, pattern, apply } = formats[f]
 
           if (inCodeBlock && name !== 'exit-codeblock') {
@@ -54,6 +59,7 @@ export function handleTextChange(quill: Quill, delta: Delta, _old: any, source: 
 
             if (name === 'codeblock') {
               inCodeBlock = true
+              justEnteredCodeBlock = true
             } else if (name === 'exit-codeblock') {
               inCodeBlock = false
             } else {
@@ -157,7 +163,7 @@ export const formats = [
   },
   {
     name: 'codeblock',
-    pattern: /^----$/,
+    pattern: /^\\?----$/,
     apply(quill: Quill, _match: RegExpExecArray, matchStart: number, lineText: string): [number, number] {
       let [prev, inlineOffset] = quill.getLine(matchStart - 1)
       if (prev) {
@@ -170,8 +176,15 @@ export const formats = [
             case 'source':
             case undefined:
             case '':
-              // assume it's source code
-              quill.deleteText(matchStart - 1 - inlineOffset, matchStart - 1)
+              // assume it's source code and delete the macro "[]" block
+              setTimeout(
+                (start, length) => {
+                  quill.deleteText(start, length) //  - 1)
+                },
+                150,
+                matchStart - 1 - inlineOffset,
+                match[0].length + 1,
+              )
           }
         }
       }
@@ -181,25 +194,25 @@ export const formats = [
       let deleted: number
       if (isAtLineEnd) {
         // if we're typing this live
-        quill.deleteText(matchStart, 4) // delete only 4, leave a line for the user to type
-        deleted = 4
+        quill.deleteText(matchStart, lineText.length) // delete only 4, leave a line for the user to type
+        deleted = lineText.length
       } else {
         // otherwise, if we're pasting
-        quill.deleteText(matchStart, 5) // delete the newline, i.e. everything
-        deleted = 5
+        quill.deleteText(matchStart, lineText.length + 1) // delete the newline, i.e. everything
+        deleted = lineText.length + 1
       }
 
-      quill.formatLine(matchStart, matchStart, 'code-block', true)
+      quill.formatLine(matchStart, matchStart + 1, 'code-block', true)
       return [deleted, 4]
     },
   },
   {
     name: 'exit-codeblock',
-    pattern: /^----$/,
-    apply(quill: Quill, _match: RegExpExecArray, matchStart: number, _lineText: string): [number, number] {
-      quill.deleteText(matchStart, 5)
+    pattern: /^\\?----$/,
+    apply(quill: Quill, _match: RegExpExecArray, matchStart: number, lineText: string): [number, number] {
+      quill.deleteText(matchStart, lineText.length + 1)
       quill.removeFormat(matchStart, matchStart)
-      return [5, 4]
+      return [lineText.length + 1, 4]
     },
   },
   {
