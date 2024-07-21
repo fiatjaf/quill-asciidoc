@@ -2,9 +2,6 @@ import Quill, { EmitterSource } from 'quill'
 
 import { handleTextChange } from './type-and-paste.ts'
 import { convert } from './get-contents.ts'
-import { Delta as QDelta } from 'quill/core.js'
-
-type Delta = InstanceType<typeof QDelta.default>
 
 export default class extends Quill {
   constructor(el: any, options: any) {
@@ -33,11 +30,5 @@ export default class extends Quill {
     super.setText(text, source)
     super.setSelection(0)
     handleTextChange(this, this.getContents(), { ops: [] }, 'user')
-  }
-
-  setContents(delta: Delta, source?: EmitterSource) {
-    super.setContents(delta, source)
-    super.setSelection(0)
-    handleTextChange(this, delta, { ops: [] }, 'user')
   }
 }
