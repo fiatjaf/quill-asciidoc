@@ -11,6 +11,8 @@ type OutputLine = {
     | 'unconstrained-bold'
     | 'code'
     | 'link'
+    | 'superscript'
+    | 'subscript'
   )[]
 }
 
@@ -26,12 +28,30 @@ export function convert(delta: Delta): string {
     let isItalic = false
     let isCode = false
     let isLink = false
+    let isSubscript = false
+    let isSuperscript = false
 
     // first close any open formatting section that doesn't continue the current line (read it backwards)
     if (current.openFormats?.length) {
       for (let f = current.openFormats.length - 1; f >= 0; f--) {
         let format = current.openFormats[f]
         switch (format) {
+          case 'superscript':
+            if (attributes?.script === 'super') {
+              isCode = true
+            } else {
+              current.text += '^'
+              current.openFormats!.splice(f, 1)
+            }
+            break
+          case 'subscript':
+            if (attributes?.script === 'sub') {
+              isCode = true
+            } else {
+              current.text += '~'
+              current.openFormats!.splice(f, 1)
+            }
+            break
           case 'code':
             if (attributes?.code) {
               isCode = true
@@ -193,6 +213,30 @@ export function convert(delta: Delta): string {
                 text += '_'
               }
             }
+          }
+        }
+
+        // superscript
+        if (attributes?.script === 'super') {
+          current.openFormats = current.openFormats || []
+          // prefix
+          if (isSuperscript) {
+            // it's already open
+          } else {
+            current.openFormats.push('superscript')
+            text += '^'
+          }
+        }
+
+        // subscript
+        if (attributes?.script === 'sub') {
+          current.openFormats = current.openFormats || []
+          // prefix
+          if (isSubscript) {
+            // it's already open
+          } else {
+            current.openFormats.push('subscript')
+            text += '~'
           }
         }
 

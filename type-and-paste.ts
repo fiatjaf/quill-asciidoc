@@ -194,6 +194,28 @@ export const formats = [
     },
   },
   {
+    name: 'superscript',
+    pattern: /([^^]|^)\^([^^]+)\^([^^]|$)/,
+    apply(quill: Quill, match: RegExpExecArray, matchStart: number, lineText: string): [number, number] {
+      advanceCursor(quill, matchStart, lineText)
+      quill.formatText(matchStart + match.index + match[1].length + 1, match[2].length, { script: 'super' })
+      quill.deleteText(matchStart + match.index + match[1].length + 1 + match[2].length, 1)
+      quill.deleteText(matchStart + match.index + match[1].length, 1)
+      return [2, match[0].length]
+    },
+  },
+  {
+    name: 'subscript',
+    pattern: /([^~]|^)~([^~]+)~([^~]|$)/,
+    apply(quill: Quill, match: RegExpExecArray, matchStart: number, lineText: string): [number, number] {
+      advanceCursor(quill, matchStart, lineText)
+      quill.formatText(matchStart + match.index + match[1].length + 1, match[2].length, { script: 'sub' })
+      quill.deleteText(matchStart + match.index + match[1].length + 1 + match[2].length, 1)
+      quill.deleteText(matchStart + match.index + match[1].length, 1)
+      return [2, match[0].length]
+    },
+  },
+  {
     name: 'inline code',
     pattern: /([^`\p{L}]|^)`([^`]+)`([^`\p{L}]|$)/u,
     apply(quill: Quill, match: RegExpExecArray, matchStart: number, lineText: string): [number, number] {
