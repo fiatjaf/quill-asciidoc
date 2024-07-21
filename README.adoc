@@ -1,6 +1,6 @@
 = quill-asciidoc
 
-A wrapper around https://quilljs.com/[Quill] that gives you Asciidoc powers:
+A wrapper around https://quilljs.com/[Quill] that gives you WYSIWYG Asciidoc powers:
 
 * allows pasting raw Asciidoc -- it gets translated into Quill formats
 * allows exporting contents as Asciidoc with `quill.getAsciidoc()`
