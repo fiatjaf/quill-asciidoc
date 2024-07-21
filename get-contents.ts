@@ -168,7 +168,7 @@ export function convert(delta: Delta): string {
             } else {
               let nextWithoutBold: string | null = null
               for (let n = o + 1; n < delta.ops.length; n++) {
-                if (delta.ops[n].attributes?.bold) {
+                if (!delta.ops[n].attributes?.bold) {
                   nextWithoutBold = delta.ops[n].insert as string
                   break
                 }
@@ -199,7 +199,7 @@ export function convert(delta: Delta): string {
             } else {
               let nextWithoutItalic: string | null = null
               for (let n = o + 1; n < delta.ops.length; n++) {
-                if (delta.ops[n].attributes?.italic) {
+                if (!delta.ops[n].attributes?.italic) {
                   nextWithoutItalic = delta.ops[n].insert as string
                   break
                 }
