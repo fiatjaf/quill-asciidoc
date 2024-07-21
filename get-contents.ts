@@ -283,7 +283,7 @@ export function convert(delta: Delta): string {
 
       output.push({ text: `image::${insert.image as string}[${params}]` })
       current = { text: '' }
-    } else if (insert?.thematic_break) {
+    } else if (insert?.divider) {
       // <hr> (not a native quill feature)
       output.push(current)
       output.push({ text: "'''" })

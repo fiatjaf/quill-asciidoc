@@ -100,10 +100,19 @@ export const formats = [
   {
     name: 'header',
     pattern: /^(={1,6} )\S+/u,
-    apply(quill: Quill, match: RegExpExecArray, lineStart: number, _lineText: string): [number, number] {
-      quill.deleteText(lineStart, match[1].length)
-      quill.formatLine(lineStart, lineStart + 1, 'header', match[1].length - 1)
+    apply(quill: Quill, match: RegExpExecArray, matchStart: number, _lineText: string): [number, number] {
+      quill.deleteText(matchStart, match[1].length)
+      quill.formatLine(matchStart, matchStart + 1, 'header', match[1].length - 1)
       return [match[1].length, match[1].length]
+    },
+  },
+  {
+    name: 'divider',
+    pattern: /^'''$/,
+    apply(quill: Quill, _match: RegExpExecArray, matchStart: number, _lineText: string): [number, number] {
+      quill.deleteText(matchStart, 3)
+      quill.insertEmbed(matchStart, 'divider', true)
+      return [3, 1]
     },
   },
   {

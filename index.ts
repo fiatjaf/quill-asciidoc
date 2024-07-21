@@ -17,6 +17,15 @@ export default class extends Quill {
     }
     Quill.register('modules/keyboard', CustomKeyboard)
 
+    const BlockEmbed = Quill.import('blots/block/embed') as any
+
+    class DividerBlot extends BlockEmbed {
+      static blotName = 'divider'
+      static tagName = 'hr'
+    }
+
+    Quill.register(DividerBlot)
+
     super(el, options)
     const bound = handleTextChange.bind(null, this)
     this.on('text-change', bound)
