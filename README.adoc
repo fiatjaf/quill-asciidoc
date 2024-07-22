@@ -8,9 +8,9 @@ A wrapper around https://quilljs.com/[Quill] that gives you WYSIWYG Asciidoc pow
 
 == Installation
 
----
+----
 npm i quill-asciidoc
----
+----
 
 == Usage
 
