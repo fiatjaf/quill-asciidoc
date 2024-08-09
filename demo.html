@@ -1,5 +1,21 @@
 <link href="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.snow.css" rel="stylesheet" />
-<div id="editor"></div>
+
+<div style="display: flex; width: 100vw; height: 100vh">
+  <div style="height: 100%; width: 50%">
+    <div id="editor"></div>
+  </div>
+  <div
+    id="result"
+    style="
+      height: 100%;
+      width: 50%;
+      white-space: pre-wrap;
+      word-break: break-all;
+      font-family: monospace;
+      padding: 2rem;
+    "
+  ></div>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.js"></script>
 <script src="lib/quill-asciidoc.bundle.js"></script>
@@ -7,5 +23,9 @@
 <script>
   const quill = new QuillAsciidoc.default('#editor', {
     theme: 'snow',
+  })
+
+  quill.on('text-change', (delta, oldDelta, source) => {
+    document.getElementById('result').textContent = quill.getAsciidoc()
   })
 </script>
