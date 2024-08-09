@@ -1,15 +1,12 @@
 export PATH := "./node_modules/.bin:" + env_var('PATH')
 
+dev:
+  fd 'ts|html' | entr -r bash -c 'just build && python -m http.server 8080'
+
 build:
   rm -rf lib
   bun run build.js
   tsc
-
-test:
-  bun test --timeout 20000
-
-test-only file:
-  bun test {{file}}
 
 publish: build
   npx downdoc README.adoc
