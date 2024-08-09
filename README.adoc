@@ -12,6 +12,10 @@ A wrapper around https://quilljs.com/[Quill] that gives you WYSIWYG Asciidoc pow
 npm i quill-asciidoc
 ----
 
+== Demo
+
+There is an interactive (very minimal) demo page at https://unpkg.com/quill-asciidoc/demo.html.
+
 == Usage
 
 [source,typescript]
