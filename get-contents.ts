@@ -20,6 +20,7 @@ export function convert(delta: Delta): string {
   let output: OutputLine[] = []
   let current: OutputLine = { text: '' }
   let codeBlockOpen = false
+  let previousWasBlock: undefined | 'header' | 'blockquote' | 'list' | 'code-block'
 
   for (let o = 0; o < delta.ops.length; o++) {
     let op = delta.ops[o]
@@ -113,17 +114,42 @@ export function convert(delta: Delta): string {
 
     // inspect operation/section
     if ((insert === '\n' || insert === '\n\n') && attributes) {
-      // block
+      // it's a block
+
       if (attributes.header) {
+        // block/line-level formats should be separated by an empty line
+        if (previousWasBlock !== 'header') {
+          output.push({ text: '' })
+          previousWasBlock = 'header'
+        }
+
         current.text = '='.repeat(attributes.header as number) + ' ' + current.text
       } else if (attributes.blockquote) {
+        // block/line-level formats should be separated by an empty line
+        if (previousWasBlock !== 'blockquote') {
+          output.push({ text: '' })
+          previousWasBlock = 'blockquote'
+        }
+
         current.text = '> ' + current.text
       } else if (attributes['code-block']) {
+        // block/line-level formats should be separated by an empty line
+        if (previousWasBlock !== 'code-block') {
+          output.push({ text: '' })
+          previousWasBlock = 'code-block'
+        }
+
         if (!codeBlockOpen) {
           codeBlockOpen = true
           output.push({ text: '[source]\n----' })
         }
       } else if (attributes.list) {
+        // block/line-level formats should be separated by an empty line
+        if (previousWasBlock !== 'list') {
+          output.push({ text: '' })
+          previousWasBlock = 'list'
+        }
+
         let r = ((attributes?.indent as number) ?? 0) + 1
         switch (attributes.list) {
           case 'bullet':
@@ -142,6 +168,7 @@ export function convert(delta: Delta): string {
             console.warn('unexpected list type', op)
         }
       }
+
       output.push(current)
       if (insert === '\n\n') {
         output.push({ text: '' })
@@ -149,10 +176,18 @@ export function convert(delta: Delta): string {
       current = { text: '' }
     } else if (typeof insert === 'string') {
       // inline
+
       let spl = insert.split('\n')
 
       if (spl.length > 1) {
         // if there are multiple lines we take that none of them will have any formatting except for the last that may be a block
+
+        // unformatted blocks should be separated by an empty line too
+        if (previousWasBlock !== undefined) {
+          output.push({ text: '' })
+          previousWasBlock = undefined
+        }
+
         for (let s = 0; s < spl.length - 1; s++) {
           current.text += spl[s] // continue from previous op
           output.push(current)
@@ -311,5 +346,8 @@ export function convert(delta: Delta): string {
 
   if (current.text.length) output.push(current)
 
-  return output.map(l => l.text).join('\n') + '\n'
+  let text = output.map(l => l.text).join('\n') + '\n'
+
+  if (text[0] === '\n') return text.substring(1)
+  else return text
 }
