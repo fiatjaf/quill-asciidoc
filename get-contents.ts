@@ -16,7 +16,9 @@ type OutputLine = {
   )[]
 }
 
-export function convert(delta: Delta): string {
+export type CustomConverter = (insert: any, current: OutputLine) => void
+
+export function convert(delta: Delta, custom: CustomConverter): string {
   let output: OutputLine[] = []
   let current: OutputLine = { text: '' }
   let codeBlockOpen = false
@@ -345,18 +347,16 @@ export function convert(delta: Delta): string {
 
       output.push({ text: `image::${insert.image as string}[${params}]` })
       current = { text: '' }
+      previousWasBlock = undefined
     } else if (insert?.divider) {
       // <hr> (not a native quill feature)
       output.push(current)
       output.push({ text: "'''" })
       current = { text: '' }
-    } else if (insert?.mention) {
-      // nostr mention (not a native quill feature)
-      current.text = current.text + (insert.mention as { id: string }).id
+      previousWasBlock = undefined
     } else {
-      // this should never happen
-      console.warn('unexpected condition happened, "insert" is empty:', op)
-      continue
+      custom(insert, current)
+      previousWasBlock = undefined
     }
   }
 

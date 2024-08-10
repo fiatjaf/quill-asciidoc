@@ -1,10 +1,13 @@
-import Quill, { EmitterSource } from 'quill'
+import Quill, { EmitterSource, QuillOptions } from 'quill'
 
-import { handleTextChange } from './type-and-paste.ts'
-import { convert } from './get-contents.ts'
+import { CustomReader, handleTextChange } from './type-and-paste.ts'
+import { convert, CustomConverter } from './get-contents.ts'
 
 export default class extends Quill {
-  constructor(el: any, options: any) {
+  customReader: CustomReader
+  customConverter: CustomConverter
+
+  constructor(el: any, options: QuillOptions & { customReader?: CustomReader; customConverter?: CustomConverter }) {
     const Keyboard = Quill.import('modules/keyboard') as any
     const Link = Quill.import('formats/link') as any
 
@@ -38,12 +41,16 @@ export default class extends Quill {
     Quill.register(DividerBlot)
 
     super(el, options)
+
+    this.customReader = options.customReader || (() => undefined)
+    this.customConverter = options.customConverter || (() => {})
+
     const bound = handleTextChange.bind(null, this)
     this.on('text-change', bound)
   }
 
   getAsciidoc() {
-    return convert(this.getContents()).trimEnd() + '\n'
+    return convert(this.getContents(), this.customConverter).trimEnd() + '\n'
   }
 
   setText(text: string, source?: EmitterSource) {

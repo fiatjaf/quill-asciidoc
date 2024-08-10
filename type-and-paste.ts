@@ -1,10 +1,13 @@
 import Quill from 'quill'
 import Block from 'quill/blots/block.js'
 import { Delta as QDelta } from 'quill/core.js'
+import quillAsciidoc from './index.ts'
 
 type Delta = InstanceType<typeof QDelta.default>
 
-export function handleTextChange(quill: Quill, delta: Delta, _old: any, source: string) {
+export type CustomReader = (ins: any) => undefined | string
+
+export function handleTextChange(quill: quillAsciidoc, delta: Delta, _old: any, source: string) {
   if (source !== 'user') return
 
   let ops = delta.ops
@@ -18,7 +21,18 @@ export function handleTextChange(quill: Quill, delta: Delta, _old: any, source: 
   if (ops.length === 0) return
 
   if (ops[0].insert) {
-    const ins = ops[0].insert as string
+    let ins = ops[0].insert as string
+
+    if (typeof ins !== 'string') {
+      let replaced = quill.customReader(ins)
+      if (typeof replaced === 'string') {
+        // use this as a string and continue parsing
+        ins = replaced
+      } else {
+        // just leave it as is
+        return
+      }
+    }
 
     // split all the lines of the input
     const multilines = ins.split('\n')
