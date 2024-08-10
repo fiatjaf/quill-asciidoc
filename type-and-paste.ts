@@ -296,7 +296,7 @@ export const formats = [
       if (text && text.length > 0) {
         // we have text for the anchor, so we must inspect it for formatting syntax
         charsDeleted = match[0].length - text.length
-        charsAdvanced = -charsDeleted
+        charsAdvanced = charsDeleted
       } else {
         // otherwise we just use the url as the text
         charsDeleted = match[0].length - url.length
