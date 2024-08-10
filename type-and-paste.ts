@@ -267,7 +267,7 @@ export const formats = [
   },
   {
     name: 'link macro',
-    pattern: /(\b(https?|link):[^[]+)\[([^\]]*)\]/,
+    pattern: /(\b(https?|nostr|link):[^[]+)\[([^\]]*)\]/,
     apply(quill: Quill, match: RegExpExecArray, matchStart: number, lineText: string): [number, number] {
       let charsAdvanced = 0
       let charsDeleted = 0

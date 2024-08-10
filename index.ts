@@ -6,16 +6,27 @@ import { convert } from './get-contents.ts'
 export default class extends Quill {
   constructor(el: any, options: any) {
     const Keyboard = Quill.import('modules/keyboard') as any
-    class CustomKeyboard extends Keyboard {
-      static DEFAULTS = {
-        ...Keyboard.DEFAULTS,
-        bindings: {
-          ...Keyboard.DEFAULTS.bindings,
-          ['list autofill']: undefined, // disable auto-lists
-        },
-      }
-    }
-    Quill.register('modules/keyboard', CustomKeyboard)
+    const Link = Quill.import('formats/link') as any
+
+    Quill.register(
+      'modules/keyboard',
+      class extends Keyboard {
+        static DEFAULTS = {
+          ...Keyboard.DEFAULTS,
+          bindings: {
+            ...Keyboard.DEFAULTS.bindings,
+            ['list autofill']: undefined, // disable auto-lists
+          },
+        }
+      },
+    )
+
+    Quill.register(
+      'formats/link',
+      class extends Link {
+        static PROTOCOL_WHITELIST = [...Link.PROTOCOL_WHITELIST, 'nostr']
+      },
+    )
 
     const BlockEmbed = Quill.import('blots/block/embed') as any
 

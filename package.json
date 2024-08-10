@@ -1,7 +1,7 @@
 {
   "type": "module",
   "name": "quill-asciidoc",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "turn Quill into an Asciidoc editor",
   "repository": {
     "type": "git",

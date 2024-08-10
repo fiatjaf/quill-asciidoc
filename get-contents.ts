@@ -325,7 +325,7 @@ export function convert(delta: Delta): string {
             line = line === url ? '' : insert // set line to '' because we don't want to output it in this case
             let prefix =
               current.text.match(/\p{L}$/u) /* previous string ends with letter */ ||
-              !(url.startsWith('https:') || url.startsWith('http:'))
+              !(url.startsWith('https:') || url.startsWith('http:') || url.startsWith('nostr:'))
                 ? 'link:'
                 : ''
             text = `${prefix}${url}[`
