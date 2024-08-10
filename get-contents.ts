@@ -119,7 +119,10 @@ export function convert(delta: Delta): string {
       if (attributes.header) {
         // block/line-level formats should be separated by an empty line
         if (previousWasBlock !== 'header') {
-          output.push({ text: '' })
+          if (output.length && output[output.length - 1].text !== '') {
+            // no need to add a newline if there is already one
+            output.push({ text: '' })
+          }
           previousWasBlock = 'header'
         }
 
@@ -127,7 +130,10 @@ export function convert(delta: Delta): string {
       } else if (attributes.blockquote) {
         // block/line-level formats should be separated by an empty line
         if (previousWasBlock !== 'blockquote') {
-          output.push({ text: '' })
+          if (output.length && output[output.length - 1].text !== '') {
+            // no need to add a newline if there is already one
+            output.push({ text: '' })
+          }
           previousWasBlock = 'blockquote'
         }
 
@@ -135,7 +141,10 @@ export function convert(delta: Delta): string {
       } else if (attributes['code-block']) {
         // block/line-level formats should be separated by an empty line
         if (previousWasBlock !== 'code-block') {
-          output.push({ text: '' })
+          if (output.length && output[output.length - 1].text !== '') {
+            // no need to add a newline if there is already one
+            output.push({ text: '' })
+          }
           previousWasBlock = 'code-block'
         }
 
@@ -146,7 +155,10 @@ export function convert(delta: Delta): string {
       } else if (attributes.list) {
         // block/line-level formats should be separated by an empty line
         if (previousWasBlock !== 'list') {
-          output.push({ text: '' })
+          if (output.length && output[output.length - 1].text !== '') {
+            // no need to add a newline if there is already one
+            output.push({ text: '' })
+          }
           previousWasBlock = 'list'
         }
 
@@ -172,6 +184,7 @@ export function convert(delta: Delta): string {
       output.push(current)
       if (insert === '\n\n') {
         output.push({ text: '' })
+        previousWasBlock = undefined // if we have already inserted an empty line then we can ignore this
       }
       current = { text: '' }
     } else if (typeof insert === 'string') {
@@ -184,7 +197,10 @@ export function convert(delta: Delta): string {
 
         // unformatted blocks should be separated by an empty line too
         if (previousWasBlock !== undefined) {
-          output.push({ text: '' })
+          if (spl[0] !== '') {
+            // no need to add a newline if there is already one
+            output.push({ text: '' })
+          }
           previousWasBlock = undefined
         }
 
@@ -346,8 +362,5 @@ export function convert(delta: Delta): string {
 
   if (current.text.length) output.push(current)
 
-  let text = output.map(l => l.text).join('\n') + '\n'
-
-  if (text[0] === '\n') return text.substring(1)
-  else return text
+  return output.map(l => l.text).join('\n') + '\n'
 }
