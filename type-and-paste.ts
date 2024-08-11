@@ -11,10 +11,10 @@ export function handleTextChange(quill: quillAsciidoc, delta: Delta, _old: any, 
   if (source !== 'user') return
 
   let ops = delta.ops
-  let offset = 0
+  let initialOffset = 0 // this starts at the first line but it's updated as each line is read in a multine insert
 
   if (delta.ops[0].retain) {
-    offset = delta.ops[0].retain as number
+    initialOffset = delta.ops[0].retain as number
     ops = ops.slice(1)
   }
 
@@ -39,75 +39,73 @@ export function handleTextChange(quill: quillAsciidoc, delta: Delta, _old: any, 
     let inCodeBlock = false
 
     for (let m = 0; m < multilines.length; m++) {
-      // go one by one
-      let lineLength = multilines[m].length
-      if (lineLength > 0) {
-        // skipping empty lines
-        const [line, inlineOffset] = quill.getLine(offset) as [Block, number]
+      let offset = initialOffset // we start at the initial offset, but update the inline offset as we go
 
-        const lineStart = offset - inlineOffset
-        let lineText = line.domNode.textContent as string
-
-        let justEnteredCodeBlock = false
-
-        for (let f = 0; f < formats.length; f++) {
-          if (justEnteredCodeBlock) break // when we enter a codeblock there is nothing else on the line that may interest us
-
-          let { name, pattern, apply } = formats[f]
-
-          if (inCodeBlock && name !== 'exit-codeblock') {
-            // when in a codeblock we only support exiting the block, so we skip all other directives
-            quill.formatLine(lineStart, lineStart, 'code-block', true)
-            continue
-          }
-
-          let lineOffset = 0 // this will be advanced as we find matches so we don't look in the same place twice
-
-          // for each format we will go through the entire text (line)
-          while (true) {
-            let match = pattern.exec(lineText.substring(lineOffset))
-            if (!match) {
-              // nothing found, we can move on to the next format
-              break
-            }
-
-            if (name === 'codeblock') {
-              inCodeBlock = true
-              justEnteredCodeBlock = true
-            } else if (name === 'exit-codeblock') {
-              inCodeBlock = false
-            } else {
-              let format = quill.getFormat(lineStart + lineOffset + match.index)
-              if (format['code-block'] || format['code']) {
-                break
-              }
-            }
-
-            let [charsDeleted, charsToSkip] = apply(quill, match, lineStart + lineOffset, lineText)
-
-            // we must keep track this to adjust the offsets as we modify the text
-            offset -= charsDeleted
-
-            // update lineText since apply() has modified it
-            const newLine = quill.getLine(offset + lineLength)[0]
-            if (newLine) {
-              lineText = newLine!.domNode!.textContent as string // must getLine() again because some reason
-              lineOffset += match.index + charsToSkip - charsDeleted // also adjust the offset from where we'll continue to scan
-            } else {
-              break
-            }
-          }
-        }
-
-        offset += lineLength + 1 // +1 stands for the obligatory ending '\n'
-
-        // if we're in the middle of the past remove formatting from the next line
-        if (m < multilines.length - 1) {
-          quill.removeFormat(offset, offset + 1)
-        }
-      } else {
-        offset += 1 // when we have skipped a line we just add the obligatory '\n'
+      // go one by one (skipping empty lines)
+      if (multilines[m].length === 0) {
+        initialOffset = initialOffset + 1 // +1 stands for the newline
+        continue
       }
+
+      const [line, inlineOffset] = quill.getLine(offset) as [Block, number]
+
+      const lineStart = offset - inlineOffset // in case our initial offset was in the middle of a line
+      let lineText = line.domNode.textContent as string
+
+      let justEnteredCodeBlock = false
+
+      for (let f = 0; f < formats.length; f++) {
+        if (justEnteredCodeBlock) break // when we enter a codeblock there is nothing else on the line that may interest us
+
+        let { name, pattern, apply } = formats[f]
+
+        if (inCodeBlock && name !== 'exit-codeblock') {
+          // when in a codeblock we only support exiting the block, so we skip all other directives
+          formatLine(quill, lineStart, { 'code-block': true })
+          continue
+        }
+
+        let lineOffset = 0 // this will be advanced as we find matches so we don't look in the same place twice
+
+        // for each format we will go through the entire text (line)
+        while (true) {
+          let match = pattern.exec(lineText.substring(lineOffset))
+          if (!match) {
+            // nothing found, we can move on to the next format
+            break
+          }
+
+          if (name === 'codeblock') {
+            inCodeBlock = true
+            justEnteredCodeBlock = true
+          } else if (name === 'exit-codeblock') {
+            inCodeBlock = false
+          } else {
+            let format = quill.getFormat(lineStart + lineOffset + match.index)
+            if (format['code-block'] || format['code']) {
+              break
+            }
+          }
+
+          // run the specific formatting code for the match
+          let [charsDeleted, charsToSkip] = apply(quill, match, lineStart + lineOffset, lineText)
+
+          // we must keep track this to adjust the offsets as we modify the text
+          offset = offset + charsToSkip - charsDeleted
+
+          // update lineText since apply() has modified it
+          const updatedLine = quill.getLine(offset)[0]
+          if (updatedLine) {
+            lineText = updatedLine!.domNode!.textContent as string // must getLine() again because some reason
+            lineOffset += match.index + charsToSkip - charsDeleted // also adjust the offset from where we'll continue to scan
+          } else {
+            break
+          }
+        }
+      }
+
+      // setup the next line's "initial" offset here (use lineStart as that was fixed by inlineOffset)
+      initialOffset = lineStart + lineText.length + 1 // +1 stands for the obligatory ending '\n'
     }
   }
 }
@@ -122,7 +120,7 @@ export const formats = [
     pattern: /^(={1,6} )\S+/u,
     apply(quill: Quill, match: RegExpExecArray, matchStart: number, _lineText: string): [number, number] {
       quill.deleteText(matchStart, match[1].length)
-      quill.formatLine(matchStart, matchStart + 1, 'header', match[1].length - 1)
+      formatLine(quill, matchStart, { header: match[1].length - 1 })
       return [match[1].length, match[1].length]
     },
   },
@@ -141,7 +139,7 @@ export const formats = [
     apply(quill: Quill, match: RegExpExecArray, matchStart: number, _lineText: string): [number, number] {
       let charsToDelete = match[1].length + match[2].length
       quill.deleteText(matchStart, charsToDelete)
-      quill.formatLine(matchStart, matchStart + 1, {
+      formatLine(quill, matchStart, {
         list: match[3] === ' ' ? 'unchecked' : 'checked',
         indent: match[1].length - 1 - 1,
       })
@@ -153,7 +151,7 @@ export const formats = [
     pattern: /^(\*{1,6} )\S+/u,
     apply(quill: Quill, match: RegExpExecArray, matchStart: number, _lineText: string): [number, number] {
       quill.deleteText(matchStart, match[1].length)
-      quill.formatLine(matchStart, matchStart + 1, { list: 'bullet', indent: match[1].length - 1 - 1 })
+      formatLine(quill, matchStart, { list: 'bullet', indent: match[1].length - 1 - 1 })
       return [match[1].length, match[1].length]
     },
   },
@@ -162,7 +160,7 @@ export const formats = [
     pattern: /^(\.{1,6} )\S+/u,
     apply(quill: Quill, match: RegExpExecArray, matchStart: number, _lineText: string): [number, number] {
       quill.deleteText(matchStart, match[1].length)
-      quill.formatLine(matchStart, matchStart + 1, { list: 'ordered', indent: match[1].length - 1 - 1 })
+      formatLine(quill, matchStart, { list: 'ordered', indent: match[1].length - 1 - 1 })
       return [match[1].length, match[1].length]
     },
   },
@@ -171,7 +169,7 @@ export const formats = [
     pattern: /^> \S+/u,
     apply(quill: Quill, _match: RegExpExecArray, matchStart: number, _lineText: string): [number, number] {
       quill.deleteText(matchStart, 2)
-      quill.formatLine(matchStart, matchStart + 1, 'blockquote', true)
+      formatLine(quill, matchStart, { blockquote: true })
       return [2, 2]
     },
   },
@@ -216,7 +214,7 @@ export const formats = [
         deleted = lineText.length + 1
       }
 
-      quill.formatLine(matchStart, matchStart + 1, 'code-block', true)
+      formatLine(quill, matchStart, { 'code-block': true })
       return [deleted, 4]
     },
   },
@@ -391,5 +389,14 @@ function advanceCursor(quill: Quill, matchStart: number, lineText: string) {
     // we're at the end of the line, so add a space so we don't keep inside the formatting block
     quill.insertText(cursor.index, ' ')
     quill.setSelection(cursor.index + 1)
+  }
+}
+
+function formatLine(quill: Quill, index: number, formats: any) {
+  let line = quill.getLine(index)[0]
+  if (line) {
+    quill.updateContents({
+      ops: [{ retain: index + line.domNode.textContent!.length }, { insert: '\n', attributes: formats }, { delete: 1 }],
+    })
   }
 }
