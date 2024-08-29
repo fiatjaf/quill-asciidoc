@@ -348,6 +348,18 @@ export function convert(delta: Delta, custom: CustomConverter): string {
       output.push({ text: `image::${insert.image as string}[${params}]` })
       current = { text: '' }
       previousWasBlock = undefined
+    } else if (insert?.video) {
+      // video
+      output.push(current)
+
+      let params = ''
+      if (attributes?.link) {
+        params = `link=${attributes.link}`
+      }
+
+      output.push({ text: `video::${insert.video as string}[${params}]` })
+      current = { text: '' }
+      previousWasBlock = undefined
     } else if (insert?.divider) {
       // <hr> (not a native quill feature)
       output.push(current)

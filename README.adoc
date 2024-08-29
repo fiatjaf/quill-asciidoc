@@ -41,6 +41,7 @@ it has
 * nicer links syntax
 * nicer image syntax
 ** much nicer image-with-link syntax
+* native video syntax
 * tables
 * blocks with metadata
 * sidebars

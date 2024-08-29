@@ -278,6 +278,23 @@ export const formats = [
     },
   },
   {
+    name: 'video macro',
+    pattern: /\bvideo::?([^[]+)\[([^\]]*)\]/,
+    apply(quill: Quill, match: RegExpExecArray, matchStart: number, _lineText: string): [number, number] {
+      let url = match[1]
+      let attrs = match[2].split(',').map(attr => attr.split('=').map(s => s.trim()))
+      quill.deleteText(matchStart + match.index, match[0].length)
+      quill.insertEmbed(matchStart + match.index, 'video', url)
+
+      let link = attrs.find(([k]) => k === 'link')
+      if (link) {
+        quill.formatText(matchStart + match.index, 1, 'link', link[1])
+      }
+
+      return [match[0].length - 1, 1 /* the embed is represented by one character */]
+    },
+  },
+  {
     name: 'link macro',
     pattern: /(\b(https?|nostr|link):[^[]+)\[([^\]]*)\]/,
     apply(quill: Quill, match: RegExpExecArray, matchStart: number, lineText: string): [number, number] {
